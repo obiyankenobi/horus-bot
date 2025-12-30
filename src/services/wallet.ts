@@ -58,4 +58,20 @@ export const walletService = {
             throw error;
         }
     },
+
+    /**
+     * Get address info (balance).
+     * @param address The address to check.
+     */
+    async getAddressInfo(address: string) {
+        try {
+            const response = await client.get('/wallet/address-info', {
+                params: { address },
+            });
+            return response.data;
+        } catch (error: any) {
+            console.error('Error fetching address info:', error);
+            return null;
+        }
+    },
 };

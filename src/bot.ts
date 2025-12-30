@@ -39,9 +39,27 @@ bot.use(async (ctx, next) => {
 // Load features
 bot.use(sendTokensFeature);
 
+// Import walletService
+import { walletService } from './services/wallet';
+
 bot.command('start', async (ctx) => {
+    if (!ctx.user?.address) return;
+
+    let balanceText = "Loading...";
+    try {
+        const info = await walletService.getAddressInfo(ctx.user.address);
+        if (info && info.success) {
+            const balance = info.total_amount_available / 100;
+            balanceText = `${balance.toFixed(2)} HTR`;
+        } else {
+            balanceText = "Unavailable";
+        }
+    } catch (e) {
+        balanceText = "Error";
+    }
+
     // Show address and buttons
-    await ctx.reply(`Welcome! Your Hathor address is:\n\`${ctx.user?.address}\`\n\nSend funds to this address to use the bot.`, {
+    await ctx.reply(`Welcome! Your Hathor address is:\n\`${ctx.user.address}\`\n\nBalance: **${balanceText}**\n\nSend funds to this address to use the bot.`, {
         parse_mode: "Markdown",
         reply_markup: {
             inline_keyboard: [

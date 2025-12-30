@@ -1,3 +1,7 @@
 node_modules
 # Keep environment variables out of version control
 .env
+
+package-lock.json
+prisma/dev.db
+prisma/migrations/20251227025843_init/
