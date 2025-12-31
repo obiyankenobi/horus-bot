@@ -46,6 +46,7 @@ export const walletService = {
                     filter_address: fromAddress,
                 },
             ],
+            change_address: fromAddress,
         };
 
         try {

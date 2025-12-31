@@ -5,6 +5,7 @@ export const config = {
     botToken: process.env.BOT_TOKEN!,
     walletUrl: process.env.WALLET_URL!,
     walletId: process.env.WALLET_ID!,
+    network: process.env.ENV_NETWORK || 'testnet',
 };
 
 if (!config.botToken) {

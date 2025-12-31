@@ -16,7 +16,8 @@
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
-    "grammy": "^1.38.4"
+    "grammy": "^1.38.4",
+    "node-nlp": "^5.0.0-alpha.5"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
