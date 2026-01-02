@@ -8,7 +8,24 @@ datasource db {
 }
 
 model User {
-  telegramId BigInt   @id
-  address    String   @unique
-  createdAt  DateTime @default(now())
+  telegramId BigInt      @id
+  address    String      @unique
+  createdAt  DateTime    @default(now())
+  tokens     UserToken[]
+}
+
+model UserToken {
+  userId    BigInt
+  tokenId   String
+  user      User     @relation(fields: [userId], references: [telegramId])
+  token     Token    @relation(fields: [tokenId], references: [id])
+
+  @@id([userId, tokenId])
+}
+
+model Token {
+  id     String @id
+  name   String
+  symbol String
+  users  UserToken[]
 }

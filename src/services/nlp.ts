@@ -20,7 +20,7 @@ class NLPService {
         // Using a regex like /^[Hh][a-zA-Z0-9]{33}$/ but nlp.js regex entity syntax varies slightly in usage
         // We use 'addRegexEntity'
 
-        // Matches literal "HTR" or "Hathor" as currency
+        // Match "HTR" or "Hathor" explicitly
         this.manager.addNamedEntityText('currency', 'HTR', ['en'], ['HTR', 'Hathor']);
 
         // Regex for Hathor Address (Base58, lengths vary 32-35 chars, starts with W/w)

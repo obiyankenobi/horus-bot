@@ -30,14 +30,15 @@ export const walletService = {
      * @param toAddress The destination address.
      * @param value The amount to send (integer, check decimals). User said "value * 100".
      * @param fromAddress The address to filter inputs.
+     * @param tokenId The token ID to send (default '00' for HTR).
      */
-    async sendTransaction(toAddress: string, value: number, fromAddress: string) {
+    async sendTransaction(toAddress: string, value: number, fromAddress: string, tokenId: string = '00') {
         const payload = {
             outputs: [
                 {
                     address: toAddress,
                     value: Math.floor(value * 100), // Assuming 2 decimals as per request
-                    token: '00', // HTR
+                    token: tokenId,
                 },
             ],
             inputs: [
@@ -64,10 +65,10 @@ export const walletService = {
      * Get address info (balance).
      * @param address The address to check.
      */
-    async getAddressInfo(address: string) {
+    async getAddressInfo(address: string, token: string = '00') {
         try {
             const response = await client.get('/wallet/address-info', {
-                params: { address },
+                params: { address, token },
             });
             return response.data;
         } catch (error: any) {

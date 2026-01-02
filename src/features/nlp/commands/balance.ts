@@ -1,6 +1,7 @@
 import { Command } from '../types';
 import { walletService } from '../../../services/wallet';
 import { MyContext } from '../../../context';
+import { prisma } from '../../../db';
 
 export const balanceCommand: Command = {
     intent: 'wallet.balance',
@@ -19,17 +20,53 @@ export const balanceCommand: Command = {
             return;
         }
 
-        // If amount was mentioned (e.g. "Do I have 10 HTR?"), we could check condition, 
-        // but for now simple balance report is fine.
+        await ctx.reply("Checking your wallet...");
 
-        await ctx.reply("Checking balance...");
-        const info = await walletService.getAddressInfo(ctx.user.address);
+        try {
+            // Fetch User's Tokens from DB
+            const userWithTokens = await prisma.user.findUnique({
+                where: { telegramId: ctx.user.telegramId },
+                include: {
+                    tokens: {
+                        include: {
+                            token: true
+                        }
+                    }
+                }
+            });
 
-        if (info && info.success) {
-            const balance = info.total_amount_available / 100;
-            await ctx.reply(`Your balance is: **${balance.toFixed(2)} HTR**`, { parse_mode: "Markdown" });
-        } else {
-            await ctx.reply("Failed to retrieve balance information.");
+            let balanceReport = `🏠 **Address**: \`${ctx.user.address}\`\n\n`;
+            balanceReport += `💰 **Wallet Balance**\n`;
+
+            // HTR
+            const htrInfo = await walletService.getAddressInfo(ctx.user.address, '00');
+            if (htrInfo && htrInfo.success) {
+                const htrBalance = htrInfo.total_amount_available / 100;
+                balanceReport += `**HTR**: ${htrBalance.toFixed(2)}\n`;
+            } else {
+                balanceReport += `**HTR**: Error fetching balance\n`;
+            }
+
+            // Check Custom Tokens
+
+            for (const ut of (userWithTokens?.tokens || []) as any[]) {
+                const symbol = ut.token?.symbol || 'UNK';
+                const name = ut.token?.name || 'Unknown Token';
+
+                const tokenInfo = await walletService.getAddressInfo(ctx.user.address, ut.tokenId);
+                if (tokenInfo && tokenInfo.success) {
+                    const tokenBalance = tokenInfo.total_amount_available / 100;
+                    balanceReport += `**${symbol}** (${name}): ${tokenBalance.toFixed(2)}\n`;
+                } else {
+                    balanceReport += `**${symbol}**: Error fetching balance\n`;
+                }
+            }
+
+            await ctx.reply(balanceReport, { parse_mode: "Markdown" });
+
+        } catch (error) {
+            console.error("Balance Check Error:", error);
+            await ctx.reply("An error occurred while fetching your balance.");
         }
     }
 };

@@ -1,12 +1,13 @@
 import { bot } from './bot';
 
+import { websocketService } from './services/websocket';
+
 async function main() {
-    console.log('Starting bot...');
-    await bot.start({
-        onStart: (botInfo) => {
-            console.log(`Bot started as @${botInfo.username}`);
-        },
-    });
+    // Start WebSocket listener for wallet events
+    websocketService.start();
+
+    console.log('Bot is running...');
+    await bot.start();
 }
 
 main().catch((err) => {

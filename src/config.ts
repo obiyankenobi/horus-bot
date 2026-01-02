@@ -6,6 +6,9 @@ export const config = {
     walletUrl: process.env.WALLET_URL!,
     walletId: process.env.WALLET_ID!,
     network: process.env.ENV_NETWORK || 'testnet',
+    wsHost: process.env.WS_HOST || 'localhost',
+    wsPort: parseInt(process.env.WS_PORT || '8008'),
+    fullnodeUrl: process.env.FULLNODE_URL || 'https://node1.testnet.hathor.network',
 };
 
 if (!config.botToken) {

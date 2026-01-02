@@ -4,4 +4,4 @@ node_modules
 
 package-lock.json
 prisma/dev.db
-prisma/migrations/20251227025843_init/
+prisma/migrations/

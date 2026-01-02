@@ -2,6 +2,7 @@ import { Command } from '../types';
 import { walletService } from '../../../services/wallet';
 import { MyContext } from '../../../context';
 import { config } from '../../../config';
+import { prisma } from '../../../db';
 
 export const sendTokensCommand: Command = {
     intent: 'token.send',
@@ -25,11 +26,35 @@ export const sendTokensCommand: Command = {
         const currencyEntity = entities.find((e: any) => e.entity === 'currency');
         const addressEntity = entities.find((e: any) => e.entity === 'hathor_address');
 
-        // Safe resolution access
-        const amount = (numberEntity && numberEntity.resolution) ? parseFloat(numberEntity.resolution.value) : null;
-        const currency = (currencyEntity && currencyEntity.resolution) ? currencyEntity.resolution.value : (currencyEntity ? currencyEntity.option : null);
+        // 1. Robust Amount Extraction
+        let amount: number | null = null;
+        if (numberEntity) {
+            // Priority 1: resolution.value (often handles "0.43" fine)
+            if (numberEntity.resolution?.value !== undefined) {
+                amount = parseFloat(numberEntity.resolution.value);
+            }
 
-        // Address relies on sourceText usually for Regex entities if no resolution provided
+            // Priority 2: Fallback to sourceText if resolution is missing or fails (e.g. "0.43")
+            if (amount === null || isNaN(amount)) {
+                const raw = numberEntity.sourceText.replace(',', '.');
+                const parsed = parseFloat(raw);
+                if (!isNaN(parsed)) amount = parsed;
+            }
+        }
+
+        // 2. Strict Currency Extraction (User Rule: "ALWAYS get what's after the number")
+        let currency: string | null = null;
+        if (numberEntity) {
+            // Slice utterance from the end of the number (+1 for space)
+            const afterNumber = result.utterance.slice(numberEntity.end + 1).trim();
+            // Take the first alphanumeric word
+            const nextWordMatch = afterNumber.match(/^[A-Za-z0-9]+/);
+            if (nextWordMatch) {
+                currency = nextWordMatch[0];
+                console.log(`[SendTokens] Strict positional extraction: found "${currency}" after number`);
+            }
+        }
+
         const address = (addressEntity && addressEntity.resolution) ? addressEntity.resolution.value : (addressEntity ? addressEntity.sourceText : null);
 
         // Validation Response
@@ -44,7 +69,7 @@ export const sendTokensCommand: Command = {
         }
 
         if (!currency) {
-            await ctx.reply(`Please specify the **token symbol** (e.g. HTR).\nExample: "Send ${amount} **HTR** to ${address || '...'}"`, { parse_mode: "Markdown" });
+            await ctx.reply(`Please specify the **token symbol** or **token name** (e.g. HTR).\nExample: "Send ${amount} **HTR** to ${address || '...'}"`, { parse_mode: "Markdown" });
             return;
         }
 
@@ -53,13 +78,32 @@ export const sendTokensCommand: Command = {
             return;
         }
 
-        // All present - Execute
-        await ctx.reply(`Processing transfer of **${amount} ${currency}** to \`${address}\`...`, { parse_mode: "Markdown" });
+        // Token resolution
+        let tokenId = '00';
+        let displayCurrency = currency.toUpperCase();
 
-        if (currency.toUpperCase() !== 'HTR' && currency.toUpperCase() !== 'HATHOR') {
-            await ctx.reply("Currently I only support sending **HTR**.", { parse_mode: "Markdown" });
-            return;
+        if (displayCurrency !== 'HTR' && displayCurrency !== 'HATHOR') {
+            // Check DB for token
+            // Database now has COLLATE NOCASE on symbol and name
+            const token = await prisma.token.findFirst({
+                where: {
+                    OR: [
+                        { symbol: currency },
+                        { name: currency }
+                    ]
+                }
+            });
+
+            if (!token) {
+                await ctx.reply(`I'm sorry, I don't recognize the token "**${currency}**".`, { parse_mode: "Markdown" });
+                return;
+            }
+            tokenId = token.id;
+            displayCurrency = token.symbol;
         }
+
+        // All present - Execute
+        await ctx.reply(`Processing transfer of **${amount} ${displayCurrency}** to \`${address}\`...`, { parse_mode: "Markdown" });
 
         // Ensure from address is valid (from user)
         if (!ctx.user || !ctx.user.address) {
@@ -68,8 +112,8 @@ export const sendTokensCommand: Command = {
         }
 
         const fromAddress = ctx.user.address;
-        console.log('[SendTokens] Wallet Request:', { address, amount, fromAddress });
-        const txResult = await walletService.sendTransaction(address, amount, fromAddress);
+        console.log('[SendTokens] Wallet Request:', { address, amount, fromAddress, tokenId });
+        const txResult = await walletService.sendTransaction(address, amount, fromAddress, tokenId);
         const explorerUrl = `https://explorer.${config.network}.hathor.network/transaction/${txResult.hash}`;
 
         if (txResult.success) {
