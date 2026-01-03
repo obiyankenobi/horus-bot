@@ -16,7 +16,7 @@ export const userService = {
         // Loop until we find an address that is not in the DB
         let address: string | null = null;
         let attempts = 0;
-        while (!address && attempts < 10) { // Safety break
+        while (!address && attempts < 50) { // Safety break
             const candidate = await walletService.getAddress(true);
             const exists = await prisma.user.findUnique({
                 where: { address: candidate },

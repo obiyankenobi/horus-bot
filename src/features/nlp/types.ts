@@ -1,3 +1,5 @@
+import { MyContext } from '../../context';
+
 export interface Command {
     intent: string;
     entities?: Record<string, string>;

@@ -4,6 +4,7 @@ import { config } from './config';
 import { MyContext } from './context';
 import { userService } from './services/user';
 import { setupNLP } from './features/nlp';
+import { walletService } from './services/wallet';
 
 export const bot = new Bot<MyContext>(config.botToken);
 
@@ -37,10 +38,30 @@ bot.use(async (ctx, next) => {
 
 setupNLP(bot);
 
-bot.command('start', async (ctx) => {
+const sendHelpMessage = async (ctx: MyContext) => {
     if (!ctx.user?.address) return;
 
-    await ctx.reply(`Welcome! Your Hathor address is:\n\`${ctx.user.address}\`\n\nTo interact, simply type commands like:\n- "Send 10 HTR to [address]"\n- "Check my balance"`, {
-        parse_mode: "Markdown",
-    });
-});
+    let balanceStr = 'could not fetch, error';
+    try {
+        const htrInfo = await walletService.getAddressInfo(ctx.user.address, '00');
+        if (htrInfo && htrInfo.success) {
+            const htrBalance = htrInfo.total_amount_available / 100;
+            balanceStr = `HTR: ${htrBalance.toFixed(2)}`;
+        }
+    } catch (error) {
+        console.error('Error fetching HTR balance for help message:', error);
+    }
+
+    await ctx.reply(
+        `👋 **Welcome to Hathor Bot!**\n\n` +
+        `🏠 **Your Address**:\n\`${ctx.user.address}\`\n\n` +
+        `💰 **Balance**:\n${balanceStr}\n\n` +
+        `📖 **Available Commands**:\n` +
+        `- "Send 10 HTR to [address]"\n` +
+        `- "Check my balance" or just "balance"\n` +
+        `- /start or /help - Show this message`,
+        { parse_mode: "Markdown" }
+    );
+};
+
+bot.command(['start', 'help'], sendHelpMessage);
