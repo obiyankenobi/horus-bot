@@ -76,4 +76,35 @@ export const walletService = {
             return null;
         }
     },
+
+    /**
+     * Execute a Nano Contract method.
+     * @param ncId The Nano Contract ID.
+     * @param method The method to execute.
+     * @param address The caller's address.
+     * @param args The arguments for the method.
+     * @param actions The actions (deposit/withdrawal) involved.
+     */
+    async executeNanoContract(ncId: string, method: string, address: string, args: any[], actions: any[]) {
+        const payload = {
+            nc_id: ncId,
+            method,
+            address,
+            data: {
+                actions: actions,
+                args: args
+            }
+        };
+
+        try {
+            const response = await client.post('/wallet/nano-contracts/execute', payload);
+            return { success: true, ...response.data };
+        } catch (error: any) {
+            console.error('Error executing Nano Contract:', error.response?.data || error.message);
+            if (error.response && error.response.data) {
+                return { success: false, ...error.response.data };
+            }
+            return { success: false, error: error.message };
+        }
+    },
 };

@@ -2,6 +2,7 @@ import { Bot } from 'grammy';
 import { MyContext } from '../../context';
 import { nlpService } from '../../services/nlp';
 import { commands } from './commands';
+import { startDiceMonitor } from '../../services/dice-monitor';
 
 export async function setupNLP(bot: Bot<MyContext>) {
     // 1. Register Commands
@@ -14,7 +15,10 @@ export async function setupNLP(bot: Bot<MyContext>) {
     // process() waits for training to complete if needed.
     nlpService.train().catch(err => console.error('[NLP] Training failed:', err));
 
-    // 3. Register Listener
+    // 3. Start Dice Monitor
+    startDiceMonitor(bot);
+
+    // 4. Register Listener
     bot.on("message:text", async (ctx, next) => {
         const text = ctx.message.text;
 

@@ -29,3 +29,11 @@ model Token {
   symbol String
   users  UserToken[]
 }
+
+model PendingBet {
+  hash      String   @id
+  userId    BigInt   @unique
+  address   String
+  amount    Float
+  createdAt DateTime @default(now())
+}
