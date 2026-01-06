@@ -3,8 +3,9 @@ dotenv.config();
 
 export const config = {
     botToken: process.env.BOT_TOKEN!,
-    walletUrl: process.env.WALLET_URL!,
-    walletId: process.env.WALLET_ID!,
+    databaseUrl: process.env.DATABASE_URL || 'file:./dev.db',
+    walletUrl: process.env.WALLET_URL || 'http://localhost:8000',
+    walletId: process.env.WALLET_ID || 'id',
     network: process.env.ENV_NETWORK || 'testnet',
     wsHost: process.env.WS_HOST || 'localhost',
     wsPort: parseInt(process.env.WS_PORT || '8008'),

@@ -15,10 +15,7 @@ export async function setupNLP(bot: Bot<MyContext>) {
     // process() waits for training to complete if needed.
     nlpService.train().catch(err => console.error('[NLP] Training failed:', err));
 
-    // 3. Start Dice Monitor
-    startDiceMonitor(bot);
-
-    // 4. Register Listener
+    // 3. Register Listener
     bot.on("message:text", async (ctx, next) => {
         const text = ctx.message.text;
 

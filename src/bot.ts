@@ -105,12 +105,13 @@ const sendHelpMessage = async (ctx: MyContext) => {
     }
 
     await ctx.reply(
-        `👋 **Welcome to Hathor Bot!**\n\n` +
+        `👋 **Welcome to Horus Bot!**\n\n` +
         `🏠 **Your Address**:\n\`${ctx.user.address}\`\n\n` +
         `💰 **Balance**:\n${balanceStr}\n\n` +
         `📖 **Available Commands**:\n` +
         `- "Send 10 HTR to [address]"\n` +
         `- "Check my balance" or just "balance"\n` +
+        `- "Play hathor dice 10 HTR 1.5x" or just "dice 10 HTR 1.5x"\n` +
         `- /start or /help - Show this message`,
         { parse_mode: "Markdown" }
     );
