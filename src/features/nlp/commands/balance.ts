@@ -20,8 +20,6 @@ export const balanceCommand: Command = {
             return;
         }
 
-        await ctx.reply("Checking your wallet...");
-
         try {
             // Fetch User's Tokens from DB
             const userWithTokens = await prisma.user.findUnique({

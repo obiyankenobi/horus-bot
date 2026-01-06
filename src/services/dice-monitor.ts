@@ -54,7 +54,7 @@ async function processBet(bot: Bot<any>, bet: any) {
         if (data.nc_execution !== 'success') {
             // Bet execution failed (e.g. script error?)
             console.log(`[DiceMonitor] Bet ${bet.hash} execution failed.`);
-            await notifyUser(bot, bet.userId, `❌ Your dice bet execution failed and your funds have been returned.\nHash: ${bet.hash}`);
+            await notifyUser(bot, bet.userId, bet.chatId, `❌ Your dice bet execution failed and your funds have been returned.\nHash: ${bet.hash}`);
             await prisma.pendingBet.delete({ where: { hash: bet.hash } });
             return;
         }
@@ -90,7 +90,7 @@ async function processBet(bot: Bot<any>, bet: any) {
         }
 
         if (result === 'LOSE') {
-            await notifyUser(bot, bet.userId, `🎲 You lost your bet of **${bet.amount} HTR**. Better luck next time!`);
+            await notifyUser(bot, bet.userId, bet.chatId, `🎲 You lost your bet of **${bet.amount} HTR**. Better luck next time!`);
             await prisma.pendingBet.delete({ where: { hash: bet.hash } });
         } else if (result === 'WIN') {
             // Claim the winnings
@@ -99,9 +99,9 @@ async function processBet(bot: Bot<any>, bet: any) {
             if (claimResult.success) {
                 const explorerUrl = `https://explorer.${config.network}.hathor.network/transaction/${claimResult.hash}`;
                 await prisma.pendingBet.delete({ where: { hash: bet.hash } });
-                await notifyUser(bot, bet.userId, `🎉 **YOU WON!** Payout: **${payoutAmount / 100} HTR**.\nThis is the transaction claiming your winnings: [${claimResult.hash}](${explorerUrl})`);
+                await notifyUser(bot, bet.userId, bet.chatId, `🎉 **YOU WON!** Payout: **${payoutAmount / 100} HTR**.\nThis is the transaction claiming your winnings: [${claimResult.hash}](${explorerUrl})`);
             } else {
-                await notifyUser(bot, bet.userId, `⚠️ You won, but I failed to claim your winnings. Retrying shortly.\nError: ${claimResult.error}`);
+                await notifyUser(bot, bet.userId, bet.chatId, `⚠️ You won, but I failed to claim your winnings. Retrying shortly.\nError: ${claimResult.error}`);
                 // Do NOT delete, retry next interval
             }
         }
@@ -136,10 +136,23 @@ async function claimWinnings(userAddress: string, amount: number) {
     );
 }
 
-async function notifyUser(bot: Bot<any>, userId: bigint, message: string) {
+async function notifyUser(bot: Bot<any>, userId: bigint, chatId: bigint | null, message: string) {
     try {
-        // userId in DB is BigInt, grammY needs number or string
-        await bot.api.sendMessage(userId.toString(), message, { parse_mode: 'Markdown' });
+        const targetId = chatId ? chatId.toString() : userId.toString();
+        let finalMessage = message;
+
+        // If sending to a group (chatId != userId), mention the user
+        if (chatId && chatId !== userId) {
+            try {
+                const member = await bot.api.getChatMember(targetId, parseInt(userId.toString()));
+                const name = member.user.username;
+                finalMessage = `[${name}](tg://user?id=${userId})\n\n${message}`;
+            } catch (ignore) {
+                finalMessage = `[User](tg://user?id=${userId})\n\n${message}`;
+            }
+        }
+
+        await bot.api.sendMessage(targetId, finalMessage, { parse_mode: 'Markdown' });
     } catch (error) {
         console.error(`[DiceMonitor] Failed to notify user ${userId}:`, error);
     }

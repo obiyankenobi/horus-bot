@@ -16,20 +16,72 @@ bot.use(conversations());
 bot.use(async (ctx, next) => {
     if (ctx.from) {
         const telegramId = BigInt(ctx.from.id);
+        const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
 
-        // Log operation
         const updateType = Object.keys(ctx.update).filter(k => k !== 'update_id')[0];
-        console.log(`[Bot] Operation from ${telegramId}: ${updateType}`);
+        console.log(`[Bot] Operation from ${telegramId} (Group: ${isGroup}): ${updateType}`);
+
+        // In groups, only respond if mentioned
+        if (isGroup && updateType === 'message' && ctx.message && ctx.me) {
+            const text = ctx.message.text || '';
+            const entities = ctx.message.entities || [];
+
+            const mentioned = entities.some((e) => {
+                if (e.type !== "mention") return false;
+                const mention = text.slice(e.offset, e.offset + e.length);
+                return mention === `@${ctx.me.username}`;
+            });
+
+            if (!mentioned) return;
+        }
+
+        // Override reply to tag user in groups
+        if (isGroup && ctx.from.username) {
+            const originalReply = ctx.reply.bind(ctx);
+            ctx.reply = async (text: string, other?: any) => {
+                // Mention format: [Name](tg://user?id=123456)
+                // Use first_name if available, otherwise "User" (or just ID, provided first_name is usually there)
+                const name = ctx.from?.username || 'User';
+                const mention = `[${name}](tg://user?id=${ctx.from?.id})`;
+
+                // Prepend mention
+                const newText = `${mention}\n\n${text}`;
+
+                // Ensure markdown parse mode if not properly set, or assume existing config handles it.
+                // We must force markdown to make the link work.
+                const options = other || {};
+                options.parse_mode = 'Markdown';
+
+                return originalReply(newText, options);
+            };
+        }
 
         try {
+            // Check if user exists
             let user = await userService.getUser(telegramId);
+
             if (!user) {
-                user = await userService.getOrCreateUser(telegramId);
+                if (isGroup) {
+                    // In groups, we don't create users automatically.
+                    if (updateType === 'message') { // Only reply to messages to avoid spam on other updates
+                        await ctx.reply("You do not have an account. Please DM me to start interacting.");
+                        return;
+                    }
+                } else {
+                    // DM: Create user
+                    user = await userService.getOrCreateUser(telegramId);
+                }
             }
-            ctx.user = user;
+
+            if (user) {
+                ctx.user = user;
+            }
+
         } catch (error) {
             console.error('Failed to get/create user:', error);
-            await ctx.reply("System error: Could not assign wallet address. Please try again later.");
+            if (!isGroup) {
+                await ctx.reply("System error: Could not assign wallet address. Please try again later.");
+            }
             return;
         }
     }

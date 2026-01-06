@@ -33,6 +33,7 @@ model Token {
 model PendingBet {
   hash      String   @id
   userId    BigInt   @unique
+  chatId    BigInt?
   address   String
   amount    Float
   createdAt DateTime @default(now())

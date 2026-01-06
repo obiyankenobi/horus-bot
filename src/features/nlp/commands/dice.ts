@@ -70,11 +70,13 @@ export const diceCommand: Command = {
             return;
         }
         // 2. Validate bet amount
-        if (amount > config.diceMaxBet) {
+        const betAmountInt = Math.floor(amount * 100);
+        if (betAmountInt > config.diceMaxBet) {
             const maxBetHtr = config.diceMaxBet / 100;
             await ctx.reply(`Bet amount too high. Maximum bet is ${maxBetHtr.toFixed(2)} HTR.`);
             return;
         }
+
         // 3. Validate Balance
         try {
             // Check HTR balance
@@ -147,22 +149,7 @@ export const diceCommand: Command = {
             }
         }
 
-        const potentialPayout = amount * multiplier;
-        await ctx.reply(`Rolling the dice...
-Bet: ${amount} HTR
-Win Chance: ${winChance.toFixed(2)}%
-Multiplier: ${multiplier.toFixed(2)}x
-Potential payout: ${potentialPayout.toFixed(2)} HTR`);
-
         // 5. Nano Contract Execution
-        const betAmountInt = Math.floor(amount * 100);
-        if (betAmountInt > config.diceMaxBet) {
-            const maxBetHtr = config.diceMaxBet / 100;
-            await ctx.reply(`Bet amount too high. Maximum bet is ${maxBetHtr.toFixed(2)} HTR.`);
-            return;
-        }
-
-        // Prepare Nano Contract Call
         const actions = [
             {
                 type: 'deposit',
@@ -185,13 +172,21 @@ Potential payout: ${potentialPayout.toFixed(2)} HTR`);
 
             if (txResult.success) {
                 const explorerUrl = `https://explorer.${config.network}.hathor.network/transaction/${txResult.hash}`;
-                await ctx.reply(`The dice is rolled and we will inform you of the results.\nTransaction Hash: [${txResult.hash}](${explorerUrl})`, { parse_mode: "Markdown" });
+                const potentialPayout = amount * multiplier;
+                await ctx.reply(`🎲🎲
+Bet: ${amount} HTR
+Win Chance: ${winChance.toFixed(2)}%
+Multiplier: ${multiplier.toFixed(2)}x
+Potential payout: ${potentialPayout.toFixed(2)} HTR
+
+The dice is rolled and we will inform you of the results.\nTransaction Hash: [${txResult.hash}](${explorerUrl})`, { parse_mode: "Markdown" });
 
                 // Save Pending Bet
                 await prisma.pendingBet.create({
                     data: {
                         hash: txResult.hash,
                         userId: ctx.user.telegramId,
+                        chatId: ctx.chat?.id ? BigInt(ctx.chat.id) : null,
                         address: ctx.user.address,
                         amount: amount
                     }
