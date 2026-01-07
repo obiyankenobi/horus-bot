@@ -99,7 +99,7 @@ async function processBet(bot: Bot<any>, bet: any) {
             if (claimResult.success) {
                 const explorerUrl = `https://explorer.${config.network}.hathor.network/transaction/${claimResult.hash}`;
                 await prisma.pendingBet.delete({ where: { hash: bet.hash } });
-                await notifyUser(bot, bet.userId, bet.chatId, `🎉 **YOU WON!** Payout: **${payoutAmount / 100} HTR**.\nThis is the transaction claiming your winnings: [${claimResult.hash}](${explorerUrl})`);
+                await notifyUser(bot, bet.userId, bet.chatId, `🎉 **YOU WON!** Payout: **${payoutAmount / 100} HTR**.\n\nThis is the transaction claiming your winnings: [${claimResult.hash}](${explorerUrl})`);
             } else {
                 await notifyUser(bot, bet.userId, bet.chatId, `⚠️ You won, but I failed to claim your winnings. Retrying shortly.\nError: ${claimResult.error}`);
                 // Do NOT delete, retry next interval

@@ -44,7 +44,7 @@ class NLPService {
         // Add built-in generic fallback or "none" interactions if needed
         this.manager.addDocument('en', 'hello', 'greetings.hello');
         this.manager.addDocument('en', 'hi', 'greetings.hello');
-        this.manager.addAnswer('en', 'greetings.hello', 'Hello! How can I help you regarding your Hathor wallet?');
+        this.manager.addAnswer('en', 'greetings.hello', 'Type /start to get started');
 
         await this.manager.train();
         this.isTrained = true;

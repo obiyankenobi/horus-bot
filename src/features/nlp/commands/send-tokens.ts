@@ -20,7 +20,6 @@ export const sendTokensCommand: Command = {
     async handle(ctx: MyContext, result: any) {
         // Extract entities
         const entities = result.entities || [];
-        console.log('[SendTokens] Extracted Entities:', JSON.stringify(entities, null, 2));
 
         const numberEntity = entities.find((e: any) => e.entity === 'number');
         const currencyEntity = entities.find((e: any) => e.entity === 'currency');
