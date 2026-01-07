@@ -3,6 +3,8 @@ import { walletService } from '../../../services/wallet';
 import { MyContext } from '../../../context';
 import { config } from '../../../config';
 import { prisma } from '../../../db';
+import { userService } from '../../../services/user';
+import { resolveTargetFromMentions } from '../mentions';
 
 export const sendTokensCommand: Command = {
     intent: 'token.send',
@@ -20,10 +22,13 @@ export const sendTokensCommand: Command = {
     async handle(ctx: MyContext, result: any) {
         // Extract entities
         const entities = result.entities || [];
-
         const numberEntity = entities.find((e: any) => e.entity === 'number');
         const currencyEntity = entities.find((e: any) => e.entity === 'currency');
         const addressEntity = entities.find((e: any) => e.entity === 'hathor_address');
+
+        let targetAddress: string | null = null;
+        let targetUserId: bigint | null = null;
+        let targetUsername: string | null = null;
 
         // 1. Robust Amount Extraction
         let amount: number | null = null;
@@ -41,6 +46,12 @@ export const sendTokensCommand: Command = {
             }
         }
 
+        if (!amount) {
+            await ctx.reply(`Please specify the **amount** you want to send.\nExample: "Send **10** HTR to ..."`, { parse_mode: "Markdown" });
+            return;
+        }
+
+
         // 2. Strict Currency Extraction (User Rule: "ALWAYS get what's after the number")
         let currency: string | null = null;
         if (numberEntity) {
@@ -54,26 +65,41 @@ export const sendTokensCommand: Command = {
             }
         }
 
-        const address = (addressEntity && addressEntity.resolution) ? addressEntity.resolution.value : (addressEntity ? addressEntity.sourceText : null);
-
-        // Validation Response
-        if (!amount && !currency && !address) {
-            await ctx.reply("I understand you want to send tokens, but I'm missing the details. Try: `send 10 HTR to [address]`", { parse_mode: "Markdown" });
-            return;
-        }
-
-        if (!amount) {
-            await ctx.reply(`Please specify the **amount** you want to send.\nExample: "Send **10** HTR to ${address || '...'}"`, { parse_mode: "Markdown" });
-            return;
-        }
-
         if (!currency) {
-            await ctx.reply(`Please specify the **token symbol** or **token name** (e.g. HTR).\nExample: "Send ${amount} **HTR** to ${address || '...'}"`, { parse_mode: "Markdown" });
+            await ctx.reply(`Please specify the **token symbol** or **token name** (e.g. Hathor or HTR).\nExample: "Send 10 **HTR** to ..."`, { parse_mode: "Markdown" });
             return;
         }
 
-        if (!address) {
-            await ctx.reply(`You need to specify the **destination address**.\nExample: "Send ${amount} ${currency} to **[address]**"`, { parse_mode: "Markdown" });
+        // 3. Address Resolution
+        // 3.1 Address Resolution from text
+        const parsedAddress = (addressEntity && addressEntity.resolution) ? addressEntity.resolution.value : (addressEntity ? addressEntity.sourceText : null);
+
+        // 3.2 Address Resolution from mention
+        // We look for 'mention' (@username) or 'text_mention' (Name Link)
+        const mentionResult = await resolveTargetFromMentions(ctx);
+        if (mentionResult.status === 'handled_error') {
+            await ctx.reply(`I couldn't resolve the identity of the user. If they are a new bot user, please ask them to DM me first so I can register them.`);
+            return;
+        }
+        if (mentionResult.status === 'found') {
+            targetUserId = mentionResult.data.userId;
+            targetUsername = mentionResult.data.username;
+        }
+
+        // If we found a User ID (either from text_mention or resolved username)
+        if (targetUserId) {
+            const { user, created } = await userService.getOrCreateUser(targetUserId, targetUsername);
+            targetAddress = user.address;
+            if (created) {
+                await ctx.reply(`[${targetUsername}](tg://user?id=${targetUserId}) hasn't interacted with the bot before. A new address was created for them 🙂`, { parse_mode: "Markdown" });
+            }
+        }
+
+        // If we have a targetAddress from mention, use it. Otherwise use parsed address.
+        const finalAddress = targetAddress || parsedAddress;
+
+        if (!finalAddress) {
+            await ctx.reply(`You need to specify the **destination** (address or user).\nExample: "Send ${amount} ${currency} to **@user**" or **[address]**`, { parse_mode: "Markdown" });
             return;
         }
 
@@ -102,7 +128,8 @@ export const sendTokensCommand: Command = {
         }
 
         // All present - Execute
-        await ctx.reply(`Processing transfer of **${amount} ${displayCurrency}** to \`${address}\`...`, { parse_mode: "Markdown" });
+        let replyMessage = `Processing transfer of **${amount} ${displayCurrency}** to \`${finalAddress}\`.`;
+        await ctx.reply(replyMessage, { parse_mode: "Markdown" });
 
         // Ensure from address is valid (from user)
         if (!ctx.user || !ctx.user.address) {
@@ -111,14 +138,14 @@ export const sendTokensCommand: Command = {
         }
 
         const fromAddress = ctx.user.address;
-        console.log('[SendTokens] Wallet Request:', { address, amount, fromAddress, tokenId });
-        const txResult = await walletService.sendTransaction(address, amount, fromAddress, tokenId);
+        console.log('[SendTokens] Wallet Request:', { address: finalAddress, amount, fromAddress, tokenId });
+        const txResult = await walletService.sendTransaction(finalAddress, amount, fromAddress, tokenId);
         const explorerUrl = `https://explorer.${config.network}.hathor.network/transaction/${txResult.hash}`;
 
         if (txResult.success) {
-            await ctx.reply(`Transaction successful!\nHash: [${txResult.hash}](${explorerUrl})`, { parse_mode: "Markdown" });
+            await ctx.reply(`Transaction successful 🚀\n\nHash: [${txResult.hash}](${explorerUrl})`, { parse_mode: "Markdown" });
         } else {
-            await ctx.reply(`Transaction failed.\nError: ${txResult.error || 'Unknown error'}`);
+            await ctx.reply(`Transaction failed 🚫\nError: ${txResult.error || 'Unknown error'}`);
         }
     }
 };

@@ -69,7 +69,7 @@ bot.use(async (ctx, next) => {
                     }
                 } else {
                     // DM: Create user
-                    user = await userService.getOrCreateUser(telegramId);
+                    ({ user } = await userService.getOrCreateUser(telegramId, ctx.from.username));
                 }
             }
 
@@ -110,8 +110,9 @@ const sendHelpMessage = async (ctx: MyContext) => {
         `💰 **Balance**:\n${balanceStr}\n\n` +
         `📖 **Available Commands**:\n` +
         `- "Send 10 HTR to [address]"\n` +
+        `- "Send 10 HTR to @user" (if in a group)\n` +
         `- "Check my balance" or just "balance"\n` +
-        `- "Play hathor dice 10 HTR 1.5x" or just "dice 10 HTR 1.5x"\n` +
+        `- "Play hathor dice 10 HTR 1.5x" or just "dice 10 HTR 70%"\n` +
         `- /start or /help - Show this message`,
         { parse_mode: "Markdown" }
     );

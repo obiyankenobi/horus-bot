@@ -10,6 +10,7 @@ datasource db {
 model User {
   telegramId BigInt      @id
   address    String      @unique
+  username   String?     @unique
   createdAt  DateTime    @default(now())
   tokens     UserToken[]
 }

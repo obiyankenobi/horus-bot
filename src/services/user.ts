@@ -1,15 +1,24 @@
 import { prisma } from '../db';
 import { walletService } from './wallet';
+import axios from 'axios';
+import { User } from '@prisma/client';
 
 export const userService = {
-    async getOrCreateUser(telegramId: bigint) {
+    async getOrCreateUser(telegramId: bigint, username?: string | null): Promise<{ user: User, created: boolean }> {
         // Check if user exists
         let user = await prisma.user.findUnique({
             where: { telegramId },
         });
 
         if (user) {
-            return user;
+            // Update username if provided and different
+            if (username && user.username !== username) {
+                user = await prisma.user.update({
+                    where: { telegramId },
+                    data: { username }
+                });
+            }
+            return { user, created: false };
         }
 
         // Assign a new address
@@ -36,17 +45,58 @@ export const userService = {
             data: {
                 telegramId,
                 address,
+                username
             },
         });
 
-        console.log(`[User Service] New user created: ID=${telegramId}, Address=${address}`);
+        console.log(`[User Service] New user created: ID=${telegramId}, Address=${address}, Username=${username}`);
 
-        return user;
+        return { user, created: true };
     },
 
     async getUser(telegramId: bigint) {
         return prisma.user.findUnique({
             where: { telegramId },
         });
+    },
+
+    async getIdByUsername(username: string): Promise<bigint | null> {
+        const user = await prisma.user.findFirst({
+            where: { username: username }
+        });
+        return user ? user.telegramId : null;
+    },
+
+    async resolveIdFromApi(username: string): Promise<bigint | null> {
+        const url = `https://www.gettg.id/api/search?username=${username}`;
+
+        console.log(`[User Service] Resolving external username: ${username}`);
+
+        for (let i = 0; i < 5; i++) {
+            try {
+                const response = await axios.get(url);
+                const data = response.data;
+
+                if (data.status === 'success' && data.data) {
+                    try {
+                        const userData = JSON.parse(data.data);
+                        if (userData.id) {
+                            return BigInt(userData.id);
+                        }
+                    } catch (parseError) {
+                        console.error('[User Service] Failed to parse gettg.id data:', parseError);
+                    }
+                }
+
+                // If pending or other status, wait and retry
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            } catch (error) {
+                console.error('[User Service] API Request failed:', error);
+                // Continue retrying
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+
+        return null;
     }
 };

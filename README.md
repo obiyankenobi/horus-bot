@@ -107,6 +107,33 @@ We recommend using PM2 for production deployment.
    pm2 logs
    ```
 
+
+## Database Management
+
+This project uses [Prisma](https://www.prisma.io/) as the ORM.
+
+### Applying Schema Changes
+When you make changes to `prisma/schema.prisma`, you need to apply them to the database and generate the client:
+
+```bash
+# During development (creates a migration file and applies it)
+npx prisma migrate dev --name describe_your_change
+```
+
+### Applying Migrations to Production
+In production, you should **never** use `migrate dev`. Instead, use `migrate deploy` to apply pending migrations:
+
+```bash
+npx prisma migrate deploy
+```
+
+### Browsing Data
+You can use Prisma Studio to view and edit data in the database:
+
+```bash
+npx prisma studio
+```
+
 ## Commands
 
 The bot supports natural language commands:
