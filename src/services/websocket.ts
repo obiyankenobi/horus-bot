@@ -3,6 +3,7 @@ import { config } from '../config';
 import { prisma } from '../db';
 import { Prisma } from '@prisma/client';
 import axios from 'axios';
+import { logger } from '../utils/logger';
 
 export class WebSocketService {
     private ws: WebSocket | null = null;
@@ -11,12 +12,12 @@ export class WebSocketService {
 
     start() {
         const url = `ws://${config.wsHost}:${config.wsPort}/v1/ws`;
-        console.log(`[WebSocket] Connecting to ${url}...`);
+        logger.info(`[WebSocket] Connecting to ${url}...`);
 
         this.ws = new WebSocket(url);
 
         this.ws.on('open', () => {
-            console.log('[WebSocket] Connected');
+            logger.info('[WebSocket] Connected');
             this.isConnected = true;
             if (this.reconnectInterval) {
                 clearInterval(this.reconnectInterval);
@@ -29,16 +30,16 @@ export class WebSocketService {
                 const message = JSON.parse(data.toString());
                 await this.handleMessage(message);
             } catch (err) {
-                console.error('[WebSocket] Error parsing message:', err);
+                logger.error(`[WebSocket] Error parsing message: ${err}`);
             }
         });
 
         this.ws.on('error', (err) => {
-            console.error('[WebSocket] Connection error:', err.message);
+            logger.error(`[WebSocket] Connection error: ${err.message}`);
         });
 
         this.ws.on('close', () => {
-            console.log('[WebSocket] Disconnected. Reconnecting in 5s...');
+            logger.info('[WebSocket] Disconnected. Reconnecting in 5s...');
             this.isConnected = false;
             this.scheduleReconnect();
         });
@@ -57,7 +58,7 @@ export class WebSocketService {
     private async handleMessage(message: any) {
         if (!message || message.type !== 'wallet:new-tx') return;
 
-        console.log('[WebSocket] New Transaction detected:', message.data?.tx_id);
+        logger.info(`[WebSocket] New Transaction detected: ${message.data?.tx_id}`);
 
         const outputs = message.data?.outputs || [];
 
@@ -74,7 +75,7 @@ export class WebSocketService {
                 });
 
                 if (user) {
-                    console.log(`[WebSocket] Found user for address ${address}. Adding token ${tokenId}...`);
+                    logger.info(`[WebSocket] Found user for address ${address}. Adding token ${tokenId}...`);
 
                     // Ensure token metadata exists before creating association (FK constraint)
                     await this.ensureTokenMetadata(tokenId);
@@ -87,19 +88,19 @@ export class WebSocketService {
                                 tokenId: tokenId
                             }
                         });
-                        console.log(`[WebSocket] Token ${tokenId} associated with User ${user.telegramId}`);
+                        logger.info(`[WebSocket] Token ${tokenId} associated with User ${user.telegramId}`);
                     } catch (e: any) {
                         // Check if error is unique constraint violation (P2002)
                         if (e.code === 'P2002') {
                             // Token already exists for this user, ignore
-                            console.log(`[WebSocket] Token ${tokenId} already exists for User ${user.telegramId}`);
+                            logger.info(`[WebSocket] Token ${tokenId} already exists for User ${user.telegramId}`);
                         } else {
-                            console.error(`[WebSocket] Failed to add token ${tokenId}:`, e);
+                            logger.error(`[WebSocket] Failed to add token ${tokenId}: ${e}`);
                         }
                     }
                 }
             } catch (err) {
-                console.error('[WebSocket] Error processing output:', err);
+                logger.error(`[WebSocket] Error processing output: ${err}`);
             }
         }
     }
@@ -110,7 +111,7 @@ export class WebSocketService {
             const existing = await prisma.token.findUnique({ where: { id: tokenId } });
             if (existing) return;
 
-            console.log(`[WebSocket] Fetching metadata for new token ${tokenId}...`);
+            logger.info(`[WebSocket] Fetching metadata for new token ${tokenId}...`);
             const url = `${config.fullnodeUrl}/v1a/transaction?id=${tokenId}`;
             const response = await axios.get(url);
 
@@ -126,15 +127,15 @@ export class WebSocketService {
                         symbol: symbol
                     }
                 });
-                console.log(`[WebSocket] Metadata stored for token ${symbol} (${name})`);
+                logger.info(`[WebSocket] Metadata stored for token ${symbol} (${name})`);
             } else {
-                console.error(`[WebSocket] Failed to fetch metadata for token ${tokenId}`);
+                logger.error(`[WebSocket] Failed to fetch metadata for token ${tokenId}`);
             }
 
         } catch (error) {
             // Ignore duplicate insert errors (race conditions)
             if ((error as any).code !== 'P2002') {
-                console.error(`[WebSocket] Error fetching token metadata:`, error);
+                logger.error(`[WebSocket] Error fetching token metadata: ${error}`);
             }
         }
     }

@@ -5,6 +5,7 @@ import { MyContext } from './context';
 import { userService } from './services/user';
 import { setupNLP } from './nlp';
 import { walletService } from './services/wallet';
+import { logger } from './utils/logger';
 
 export const bot = new Bot<MyContext>(config.botToken);
 
@@ -19,7 +20,7 @@ bot.use(async (ctx, next) => {
         const isGroup = ctx.chat?.type === 'group' || ctx.chat?.type === 'supergroup';
 
         const updateType = Object.keys(ctx.update).filter(k => k !== 'update_id')[0];
-        console.log(`[Bot] Operation from ${telegramId} (Group: ${isGroup}): ${updateType}`);
+        logger.info(`[Bot] Operation from ${telegramId} (Group: ${isGroup}): ${updateType}`);
 
         // In groups, only respond if mentioned
         if (isGroup && updateType === 'message' && ctx.message && ctx.me) {
@@ -78,7 +79,7 @@ bot.use(async (ctx, next) => {
             }
 
         } catch (error) {
-            console.error('Failed to get/create user:', error);
+            logger.error(`Failed to get/create user: ${error}`);
             if (!isGroup) {
                 await ctx.reply("System error: Could not assign wallet address. Please try again later.");
             }
@@ -101,7 +102,7 @@ const sendHelpMessage = async (ctx: MyContext) => {
             balanceStr = `HTR: ${htrBalance.toFixed(2)}`;
         }
     } catch (error) {
-        console.error('Error fetching HTR balance for help message:', error);
+        logger.error(`Error fetching HTR balance for help message: ${error}`);
     }
 
     await ctx.reply(

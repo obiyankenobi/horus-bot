@@ -3,12 +3,13 @@ import { prisma } from '../db';
 import { config } from '../config';
 import { walletService } from './wallet';
 import axios from 'axios';
+import { logger } from '../utils/logger';
 
 // Polling interval in milliseconds
 const INTERVAL_MS = 15000;
 
 export function startDiceMonitor(bot: Bot<any>) {
-    console.log('[DiceMonitor] Starting monitoring service...');
+    logger.info('[DiceMonitor] Starting monitoring service...');
 
     // Check immediately then interval
     checkPendingBets(bot);
@@ -20,19 +21,19 @@ async function checkPendingBets(bot: Bot<any>) {
         const pendingBets = await prisma.pendingBet.findMany();
         if (pendingBets.length === 0) return;
 
-        console.log(`[DiceMonitor] Checking ${pendingBets.length} pending bets...`);
+        logger.info(`[DiceMonitor] Checking ${pendingBets.length} pending bets...`);
 
         for (const bet of pendingBets) {
             await processBet(bot, bet);
         }
 
     } catch (error) {
-        console.error('[DiceMonitor] Error fetching pending bets:', error);
+        logger.error(`[DiceMonitor] Error fetching pending bets: ${error}`);
     }
 }
 
 async function processBet(bot: Bot<any>, bet: any) {
-    console.log(`[DiceMonitor] Checking bet ${bet.hash}...`);
+    logger.info(`[DiceMonitor] Checking bet ${bet.hash}...`);
     const url = `${config.fullnodeUrl}/v1a/nano_contract/logs`;
 
     try {
@@ -47,13 +48,13 @@ async function processBet(bot: Bot<any>, bet: any) {
             // Not confirmed yet or error?
             // If nc_execution is missing, maybe it's still mining/propagating?
             // We only act if we have conclusive state.
-            console.log(`[DiceMonitor] Bet ${bet.hash} not confirmed yet or error.`);
+            logger.info(`[DiceMonitor] Bet ${bet.hash} not confirmed yet or error.`);
             return;
         }
 
         if (data.nc_execution !== 'success') {
             // Bet execution failed (e.g. script error?)
-            console.log(`[DiceMonitor] Bet ${bet.hash} execution failed.`);
+            logger.info(`[DiceMonitor] Bet ${bet.hash} execution failed.`);
             await notifyUser(bot, bet.userId, bet.chatId, `❌ Your dice bet execution failed and your funds have been returned.\nHash: ${bet.hash}`);
             await prisma.pendingBet.delete({ where: { hash: bet.hash } });
             return;
@@ -67,7 +68,7 @@ async function processBet(bot: Bot<any>, bet: any) {
 
         if (!betLogs || !Array.isArray(betLogs) || betLogs.length === 0) {
             // Ensure logs exist
-            console.log(`[DiceMonitor] Bet ${bet.hash} has no logs.`);
+            logger.info(`[DiceMonitor] Bet ${bet.hash} has no logs.`);
             return;
         }
 
@@ -80,7 +81,7 @@ async function processBet(bot: Bot<any>, bet: any) {
 
         for (const event of events) {
             if (event.type === 'LOG' && event.key_values) {
-                console.log('[DiceMonitor] Event:', JSON.stringify(event));
+                logger.info(`[DiceMonitor] Event: ${JSON.stringify(event)}`);
                 if (event.key_values.payout && event.key_values.payout > 0) {
                     result = 'WIN';
                     payoutAmount = parseInt(event.key_values.payout);
@@ -108,10 +109,10 @@ async function processBet(bot: Bot<any>, bet: any) {
 
     } catch (error: any) {
         if (error.response && error.response.status === 404) {
-            console.log(`[DiceMonitor] Logs not ready yet for ${bet.hash} (404).`);
+            logger.info(`[DiceMonitor] Logs not ready yet for ${bet.hash} (404).`);
             return;
         }
-        console.error(`[DiceMonitor] Error processing bet ${bet.hash}:`, error.message);
+        logger.error(`[DiceMonitor] Error processing bet ${bet.hash}: ${error.message}`);
         // Do not delete, retry later
     }
 }
@@ -154,6 +155,6 @@ async function notifyUser(bot: Bot<any>, userId: bigint, chatId: bigint | null, 
 
         await bot.api.sendMessage(targetId, finalMessage, { parse_mode: 'Markdown' });
     } catch (error) {
-        console.error(`[DiceMonitor] Failed to notify user ${userId}:`, error);
+        logger.error(`[DiceMonitor] Failed to notify user ${userId}: ${error}`);
     }
 }

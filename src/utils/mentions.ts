@@ -1,5 +1,6 @@
 import { MyContext } from '../context';
 import { userService } from '../services/user';
+import { logger } from '../utils/logger';
 
 export type MentionTarget = {
     userId: bigint;
@@ -22,7 +23,7 @@ export async function resolveTargetFromMentions(ctx: MyContext): Promise<Mention
         if (ent.type === 'text_mention' && ent.user) {
             const targetUserId = BigInt(ent.user.id);
             const targetUsername = ent.user.username || ent.user.first_name || null;
-            console.log(`[Mentions] Found text_mention for ID: ${targetUserId}, username: ${targetUsername}`);
+            logger.info(`[Mentions] Found text_mention for ID: ${targetUserId}, username: ${targetUsername}`);
 
             return {
                 status: 'found',
@@ -37,7 +38,7 @@ export async function resolveTargetFromMentions(ctx: MyContext): Promise<Mention
             if (mentionText === `@${ctx.me.username}`) continue;
 
             const targetUsername = mentionText.replace('@', ''); // e.g. "user"
-            console.log(`[Mentions] Found mention: ${targetUsername}`);
+            logger.info(`[Mentions] Found mention: ${targetUsername}`);
 
             // Resolve username
             try {
@@ -58,11 +59,11 @@ export async function resolveTargetFromMentions(ctx: MyContext): Promise<Mention
                         }
                     };
                 } else {
-                    console.error('Could not get user ID for username:', targetUsername);
+                    logger.error(`Could not get user ID for username: ${targetUsername}`);
                     return { status: 'handled_error' };
                 }
             } catch (error) {
-                console.error('Error resolving username:', error);
+                logger.error(`Error resolving username: ${error}`);
                 return { status: 'handled_error' };
             }
         }

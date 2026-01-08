@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { config } from '../config';
+import { logger } from '../utils/logger';
 
 const client = axios.create({
     baseURL: config.walletUrl,
@@ -19,7 +20,7 @@ export const walletService = {
             params: { mark_as_used: markAsUsed },
         });
         if (!response.data.address) {
-            console.error('Wallet response:', response.data);
+            logger.error(`Wallet response: ${JSON.stringify(response.data)}`);
             throw new Error('Wallet did not return an address.');
         }
         return response.data.address;
@@ -72,7 +73,7 @@ export const walletService = {
             });
             return response.data;
         } catch (error: any) {
-            console.error('Error fetching address info:', error);
+            logger.error(`Error fetching address info: ${error}`);
             return null;
         }
     },
@@ -100,7 +101,7 @@ export const walletService = {
             const response = await client.post('/wallet/nano-contracts/execute', payload);
             return { success: true, ...response.data };
         } catch (error: any) {
-            console.error('Error executing Nano Contract:', error.response?.data || error.message);
+            logger.error(`Error executing Nano Contract: ${error.response?.data || error.message}`);
             if (error.response && error.response.data) {
                 return { success: false, ...error.response.data };
             }

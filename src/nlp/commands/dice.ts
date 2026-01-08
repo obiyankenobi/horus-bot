@@ -4,6 +4,7 @@ import { config } from '../../config';
 import { walletService } from '../../services/wallet';
 import { prisma } from '../../db';
 import { hasMoreThanTwoDecimals } from '../../utils/validation';
+import { logger } from '../../utils/logger';
 
 interface DiceCalculation {
     multiplier: number;
@@ -147,7 +148,7 @@ export const diceCommand: Command = {
             }
 
         } catch (error) {
-            console.error("Balance check failed:", error);
+            logger.error(`Balance check failed: ${error}`);
             await ctx.reply("Failed to verify balance.");
             return;
         }
@@ -221,7 +222,7 @@ The dice is rolled and we will inform you of the results.\nTransaction Hash: [${
             }
 
         } catch (error) {
-            console.error("Dice execution error:", error);
+            logger.error(`Dice execution error: ${error}`);
             await ctx.reply("An error occurred while rolling the dice. Please try again.");
         }
     }

@@ -2,6 +2,7 @@
 import { NlpManager } from 'node-nlp';
 import { Command } from '../nlp/types';
 import path from 'path';
+import { logger } from '../utils/logger';
 
 class NLPService {
     private manager: any;
@@ -34,7 +35,7 @@ class NLPService {
     async train() {
         if (this.isTrained) return;
 
-        console.log('[NLP] Training model...');
+        logger.info('[NLP] Training model...');
 
         // Allow each command to register its training data
         for (const command of this.commands.values()) {
@@ -48,7 +49,7 @@ class NLPService {
 
         await this.manager.train();
         this.isTrained = true;
-        console.log('[NLP] Model trained.');
+        logger.info('[NLP] Model trained.');
     }
 
     async process(text: string) {

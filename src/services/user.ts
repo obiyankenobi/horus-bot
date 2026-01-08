@@ -1,6 +1,7 @@
 import { prisma } from '../db';
 import { walletService } from './wallet';
 import axios from 'axios';
+import { logger } from '../utils/logger';
 import { User } from '@prisma/client';
 
 export const userService = {
@@ -49,7 +50,7 @@ export const userService = {
             },
         });
 
-        console.log(`[User Service] New user created: ID=${telegramId}, Address=${address}, Username=${username}`);
+        logger.info(`[User Service] New user created: ID=${telegramId}, Address=${address}, Username=${username}`);
 
         return { user, created: true };
     },
@@ -70,7 +71,7 @@ export const userService = {
     async resolveIdFromApi(username: string): Promise<bigint | null> {
         const url = `https://www.gettg.id/api/search?username=${username}`;
 
-        console.log(`[User Service] Resolving external username: ${username}`);
+        logger.info(`[User Service] Resolving external username: ${username}`);
 
         for (let i = 0; i < 5; i++) {
             try {
@@ -84,14 +85,14 @@ export const userService = {
                             return BigInt(userData.id);
                         }
                     } catch (parseError) {
-                        console.error('[User Service] Failed to parse gettg.id data:', parseError);
+                        logger.error(`[User Service] Failed to parse gettg.id data: ${parseError}`);
                     }
                 }
 
                 // If pending or other status, wait and retry
                 await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (error) {
-                console.error('[User Service] API Request failed:', error);
+                logger.error(`[User Service] API Request failed: ${error}`);
                 // Continue retrying
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }

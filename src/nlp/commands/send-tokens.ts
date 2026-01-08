@@ -6,6 +6,7 @@ import { prisma } from '../../db';
 import { userService } from '../../services/user';
 import { resolveTargetFromMentions } from '../../utils/mentions';
 import { hasMoreThanTwoDecimals } from '../../utils/validation';
+import { logger } from '../../utils/logger';
 
 export const sendTokensCommand: Command = {
     intent: 'token.send',
@@ -66,7 +67,7 @@ export const sendTokensCommand: Command = {
             const nextWordMatch = afterNumber.match(/^[A-Za-z0-9]+/);
             if (nextWordMatch) {
                 currency = nextWordMatch[0];
-                console.log(`[SendTokens] Strict positional extraction: found "${currency}" after number`);
+                logger.info(`[SendTokens] Strict positional extraction: found "${currency}" after number`);
             }
         }
 
@@ -143,7 +144,7 @@ export const sendTokensCommand: Command = {
         }
 
         const fromAddress = ctx.user.address;
-        console.log('[SendTokens] Wallet Request:', { address: finalAddress, amount, fromAddress, tokenId });
+        logger.info(`[SendTokens] Wallet Request: ${JSON.stringify({ address: finalAddress, amount, fromAddress, tokenId })}`);
         const txResult = await walletService.sendTransaction(finalAddress, amount, fromAddress, tokenId);
         const explorerUrl = `https://explorer.${config.network}.hathor.network/transaction/${txResult.hash}`;
 

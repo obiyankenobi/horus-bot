@@ -2,6 +2,7 @@ import { Command } from '../types';
 import { walletService } from '../../services/wallet';
 import { MyContext } from '../../context';
 import { prisma } from '../../db';
+import { logger } from '../../utils/logger';
 
 export const balanceCommand: Command = {
     intent: 'wallet.balance',
@@ -63,7 +64,7 @@ export const balanceCommand: Command = {
             await ctx.reply(balanceReport, { parse_mode: "Markdown" });
 
         } catch (error) {
-            console.error("Balance Check Error:", error);
+            logger.error(`Balance Check Error: ${error}`);
             await ctx.reply("An error occurred while fetching your balance.");
         }
     }

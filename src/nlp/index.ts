@@ -3,6 +3,7 @@ import { MyContext } from '../context';
 import { nlpService } from '../services/nlp';
 import { commands } from './commands';
 import { startDiceMonitor } from '../services/dice-monitor';
+import { logger } from '../utils/logger';
 
 export async function setupNLP(bot: Bot<MyContext>) {
     // 1. Register Commands
@@ -13,7 +14,7 @@ export async function setupNLP(bot: Bot<MyContext>) {
     // 2. Train Model (Async)
     // We start training but don't block bot startup, 
     // process() waits for training to complete if needed.
-    nlpService.train().catch(err => console.error('[NLP] Training failed:', err));
+    nlpService.train().catch(err => logger.error(`[NLP] Training failed: ${err}`));
 
     // 3. Register Listener
     bot.on("message:text", async (ctx, next) => {
@@ -30,7 +31,7 @@ export async function setupNLP(bot: Bot<MyContext>) {
             const intent = result.intent;
             const score = result.score;
 
-            console.log(`[NLP] Text: "${text}" -> Intent: ${intent} (${score})`);
+            logger.info(`[NLP] Text: "${text}" -> Intent: ${intent} (${score})`);
 
             if (intent && intent !== 'None' && score > 0.7) {
                 const command = nlpService.getCommand(intent);
@@ -45,7 +46,7 @@ export async function setupNLP(bot: Bot<MyContext>) {
                 await ctx.reply("I didn't quite get that. Try specific commands like:\n- `Send 10 HTR to [address]`\n- `Check balance`", { parse_mode: "Markdown" });
             }
         } catch (error) {
-            console.error('[NLP] Error processing message:', error);
+            logger.error(`[NLP] Error processing message: ${error}`);
             await ctx.reply("Sorry, I encountered an error processing your request.");
         }
     });
