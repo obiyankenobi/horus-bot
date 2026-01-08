@@ -15,6 +15,9 @@ export const config = {
     diceHouseEdge: parseInt(process.env.DICE_HOUSE_EDGE || '190'),
     diceNcId: process.env.DICE_NC_ID || '00000000361ec0406d90a5bb4c6c7330af5792178b86cfc353afd4e50a62b741',
     diceMaxBet: parseInt(process.env.DICE_MAX_BET || '10000'),
+    // Calculated values from https://github.com/HathorNetwork/hathordice-dapp/blob/master/lib/utils.ts#L13
+    diceMinThreshold: parseInt(process.env.DICE_MIN_THRESHOLD || '643'),
+    diceMaxThreshold: parseInt(process.env.DICE_MAX_THRESHOLD || '64289'),
 };
 
 if (!config.botToken) {

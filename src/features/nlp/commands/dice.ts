@@ -5,6 +5,54 @@ import { walletService } from '../../../services/wallet';
 import { prisma } from '../../../db';
 import { hasMoreThanTwoDecimals } from '../../../utils/validation';
 
+interface DiceCalculation {
+    multiplier: number;
+    winChance: number;
+    threshold: number;
+}
+
+function calculateFromMultiplier(multiplier: number): DiceCalculation {
+    const range = Math.pow(2, config.diceRandomBitLength);
+    const houseEdgeBP = config.diceHouseEdge;
+
+    // threshold = 2**randomBitLength * (10000 - houseEdgeBasisPoints) / (10000 * multiplier)
+    const threshold = Math.floor((range * (10000 - houseEdgeBP)) / (10000 * multiplier));
+    const winChance = (threshold * 100) / range;
+
+    return { multiplier, winChance, threshold };
+}
+function calculateFromWinChance(winChance: number): DiceCalculation {
+    const range = Math.pow(2, config.diceRandomBitLength);
+    const houseEdgeBP = config.diceHouseEdge;
+
+    // threshold = winChance * 2**randomBitLength / 100
+    const threshold = Math.floor((winChance * range) / 100);
+    // multiplier = 2**randomBitLength * (10000 - houseEdgeBasisPoints) / (10000 * threshold)
+    const multiplier = threshold === 0 ? 0 : (range * (10000 - houseEdgeBP)) / (10000 * threshold);
+
+    return { multiplier, winChance, threshold };
+}
+
+function applyThresholdLimits(threshold: number): DiceCalculation {
+    const range = Math.pow(2, config.diceRandomBitLength);
+    const houseEdgeBP = config.diceHouseEdge;
+    const minThreshold = config.diceMinThreshold;
+    const maxThreshold = config.diceMaxThreshold;
+
+    let finalThreshold = threshold;
+
+    if (threshold < minThreshold) {
+        finalThreshold = minThreshold;
+    } else if (threshold > maxThreshold) {
+        finalThreshold = maxThreshold;
+    }
+
+    const winChance = (finalThreshold * 100) / range;
+    const multiplier = finalThreshold === 0 ? 0 : (range * (10000 - houseEdgeBP)) / (10000 * finalThreshold);
+
+    return { multiplier, winChance, threshold: finalThreshold };
+}
+
 export const diceCommand: Command = {
     intent: 'games.dice',
 
@@ -105,55 +153,26 @@ export const diceCommand: Command = {
         }
 
         // 4. Calculate Logic
-        const maxMult = config.diceMaxMultiplier;
-        const bitLength = config.diceRandomBitLength;
-        const houseEdgeBP = config.diceHouseEdge; // Basis points, e.g., 190 = 1.9%
-        const range = Math.pow(2, bitLength); // 65536 for 16 bits
-
-        let multiplier: number;
-        let winChance: number;
-        let threshold: number;
+        let calc: DiceCalculation;
 
         if (targetType === 'x') {
-            multiplier = targetValue;
-
-            // Validation: Max Multiplier
-            if (multiplier > maxMult) {
-                await ctx.reply(`Multiplier too high. Maximum allowed is ${maxMult}x.`);
+            if (targetValue > config.diceMaxMultiplier) {
+                await ctx.reply(`Multiplier too high. Maximum allowed is ${config.diceMaxMultiplier}x.`);
                 return;
             }
-
-            // threshold = 2**randomBitLength * (10000 - houseEdgeBasisPoints) / (10000 * multiplier)
-            threshold = Math.floor((range * (10000 - houseEdgeBP)) / (10000 * multiplier));
-
-            // winChance = threshold * 100 / 2**randomBitLength
-            winChance = (threshold * 100) / range;
+            calc = calculateFromMultiplier(targetValue);
 
         } else {
             // targetType === '%'
-            winChance = targetValue;
-
-            if (winChance >= 100 || winChance <= 0) {
+            if (targetValue >= 100 || targetValue <= 0) {
                 await ctx.reply(`Invalid win chance. Must be between 0 and 100.`);
                 return;
             }
 
-            // threshold = winChance * 2**randomBitLength / 100
-            threshold = Math.floor((winChance * range) / 100);
-
-            // multiplier = 2**randomBitLength * (10000 - houseEdgeBasisPoints) / (10000 * threshold)
-            // Guard against division by zero if threshold is 0 (shouldn't happen with winChance > 0)
-            if (threshold === 0) {
-                await ctx.reply("Invalid win chance resulting in 0 threshold.");
-                return;
-            }
-            multiplier = (range * (10000 - houseEdgeBP)) / (10000 * threshold);
-
-            if (multiplier > maxMult) {
-                await ctx.reply(`Calculated multiplier ${multiplier.toFixed(2)}x exceeds maximum allowed ${maxMult}x.`);
-                return;
-            }
+            calc = calculateFromWinChance(targetValue);
         }
+
+        const { multiplier, winChance, threshold } = applyThresholdLimits(calc.threshold);
 
         // 5. Nano Contract Execution
         const actions = [
