@@ -5,6 +5,7 @@ import { config } from '../../../config';
 import { prisma } from '../../../db';
 import { userService } from '../../../services/user';
 import { resolveTargetFromMentions } from '../mentions';
+import { hasMoreThanTwoDecimals } from '../../../utils/validation';
 
 export const sendTokensCommand: Command = {
     intent: 'token.send',
@@ -51,6 +52,10 @@ export const sendTokensCommand: Command = {
             return;
         }
 
+        if (hasMoreThanTwoDecimals(amount)) {
+            await ctx.reply("Only up to 2 decimal places are supported for token amounts.");
+            return;
+        }
 
         // 2. Strict Currency Extraction (User Rule: "ALWAYS get what's after the number")
         let currency: string | null = null;

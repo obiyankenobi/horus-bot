@@ -3,6 +3,7 @@ import { MyContext } from '../../../context';
 import { config } from '../../../config';
 import { walletService } from '../../../services/wallet';
 import { prisma } from '../../../db';
+import { hasMoreThanTwoDecimals } from '../../../utils/validation';
 
 export const diceCommand: Command = {
     intent: 'games.dice',
@@ -62,6 +63,11 @@ export const diceCommand: Command = {
 
         if (isNaN(amount) || amount <= 0) {
             await ctx.reply("Invalid bet amount. Please specify a positive number.");
+            return;
+        }
+
+        if (hasMoreThanTwoDecimals(amountMatch[1])) {
+            await ctx.reply("Only up to 2 decimal places are supported for bet amounts.");
             return;
         }
 
