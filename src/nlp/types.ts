@@ -1,4 +1,4 @@
-import { MyContext } from '../../context';
+import { MyContext } from '../context';
 
 export interface Command {
     intent: string;

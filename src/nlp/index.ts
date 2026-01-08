@@ -1,8 +1,8 @@
 import { Bot } from 'grammy';
-import { MyContext } from '../../context';
-import { nlpService } from '../../services/nlp';
+import { MyContext } from '../context';
+import { nlpService } from '../services/nlp';
 import { commands } from './commands';
-import { startDiceMonitor } from '../../services/dice-monitor';
+import { startDiceMonitor } from '../services/dice-monitor';
 
 export async function setupNLP(bot: Bot<MyContext>) {
     // 1. Register Commands

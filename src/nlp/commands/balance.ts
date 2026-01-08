@@ -1,7 +1,7 @@
 import { Command } from '../types';
-import { walletService } from '../../../services/wallet';
-import { MyContext } from '../../../context';
-import { prisma } from '../../../db';
+import { walletService } from '../../services/wallet';
+import { MyContext } from '../../context';
+import { prisma } from '../../db';
 
 export const balanceCommand: Command = {
     intent: 'wallet.balance',

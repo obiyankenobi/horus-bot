@@ -1,11 +1,11 @@
 import { Command } from '../types';
-import { walletService } from '../../../services/wallet';
-import { MyContext } from '../../../context';
-import { config } from '../../../config';
-import { prisma } from '../../../db';
-import { userService } from '../../../services/user';
-import { resolveTargetFromMentions } from '../mentions';
-import { hasMoreThanTwoDecimals } from '../../../utils/validation';
+import { walletService } from '../../services/wallet';
+import { MyContext } from '../../context';
+import { config } from '../../config';
+import { prisma } from '../../db';
+import { userService } from '../../services/user';
+import { resolveTargetFromMentions } from '../../utils/mentions';
+import { hasMoreThanTwoDecimals } from '../../utils/validation';
 
 export const sendTokensCommand: Command = {
     intent: 'token.send',

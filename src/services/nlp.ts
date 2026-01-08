@@ -1,6 +1,6 @@
 /// <reference path="../types.d.ts" />
 import { NlpManager } from 'node-nlp';
-import { Command } from '../features/nlp/types';
+import { Command } from '../nlp/types';
 import path from 'path';
 
 class NLPService {

@@ -1,5 +1,5 @@
-import { MyContext } from '../../context';
-import { userService } from '../../services/user';
+import { MyContext } from '../context';
+import { userService } from '../services/user';
 
 export type MentionTarget = {
     userId: bigint;

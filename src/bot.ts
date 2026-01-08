@@ -3,7 +3,7 @@ import { conversations } from '@grammyjs/conversations';
 import { config } from './config';
 import { MyContext } from './context';
 import { userService } from './services/user';
-import { setupNLP } from './features/nlp';
+import { setupNLP } from './nlp';
 import { walletService } from './services/wallet';
 
 export const bot = new Bot<MyContext>(config.botToken);

@@ -1,9 +1,9 @@
 import { Command } from '../types';
-import { MyContext } from '../../../context';
-import { config } from '../../../config';
-import { walletService } from '../../../services/wallet';
-import { prisma } from '../../../db';
-import { hasMoreThanTwoDecimals } from '../../../utils/validation';
+import { MyContext } from '../../context';
+import { config } from '../../config';
+import { walletService } from '../../services/wallet';
+import { prisma } from '../../db';
+import { hasMoreThanTwoDecimals } from '../../utils/validation';
 
 interface DiceCalculation {
     multiplier: number;
