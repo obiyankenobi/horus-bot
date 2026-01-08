@@ -113,9 +113,24 @@ const sendHelpMessage = async (ctx: MyContext) => {
         `- "Send 10 HTR to @user" (if in a group)\n` +
         `- "Check my balance" or just "balance"\n` +
         `- "Play hathor dice 10 HTR 1.5x" or just "dice 10 HTR 70%"\n` +
-        `- /start or /help - Show this message`,
+        `- /start, /help or /dice - Show help and info`,
         { parse_mode: "Markdown" }
     );
 };
 
 bot.command(['start', 'help'], sendHelpMessage);
+
+const sendDiceHelpMessage = async (ctx: MyContext) => {
+    await ctx.reply(
+        `🎲 **Hathor Dice**\n\n` +
+        `You can only play using **HTR**.\n\n` +
+        `To play, you need to specify either the **multiplier** or the **win chance**:\n\n` +
+        `1️⃣ **Multiplier**: \`play dice 10 HTR 1.5x\`\n` +
+        `*Means you bet 10 HTR to potentially gain 1.5x (15 HTR).*\n\n` +
+        `2️⃣ **Win Chance**: \`play dice 10 HTR 50%\`\n` +
+        `*Means you have a 50% chance of winning with a 10 HTR bet.*`,
+        { parse_mode: "Markdown" }
+    );
+};
+
+bot.command('dice', sendDiceHelpMessage);
