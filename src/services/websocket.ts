@@ -117,7 +117,7 @@ export class WebSocketService {
             if (response.data && response.data.success && response.data.tx) {
                 const tx = response.data.tx;
                 const name = tx.token_name || 'Unknown';
-                const symbol = (tx.token_symbol || 'UNK').toUpperCase();
+                const symbol = (tx.token_symbol || 'UNK');
 
                 await prisma.token.create({
                     data: {

@@ -42,6 +42,8 @@ A Telegram bot for the Hathor Network that enables users to manage their wallets
    npx prisma db push
    ```
 
+   > Make sure Token table has correct columns with `COLLATE NOCASE`.
+
 ## Configuration
 
 ### Environment Variables (`.env`)
