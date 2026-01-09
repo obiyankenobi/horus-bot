@@ -129,7 +129,7 @@ export class WebSocketService {
                 });
                 logger.info(`[WebSocket] Metadata stored for token ${symbol} (${name})`);
             } else {
-                logger.error(`[WebSocket] Failed to fetch metadata for token ${tokenId}`);
+                logger.error(`[WebSocket] Failed to fetch metadata for token ${tokenId}, status ${response.status} ${response.statusText}, data: ${JSON.stringify(response.data)}`);
             }
 
         } catch (error) {

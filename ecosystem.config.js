@@ -13,6 +13,7 @@ module.exports = {
         env_production: {
             NODE_ENV: 'production',
             ENV_NETWORK: 'mainnet',
+            FULLNODE_URL: 'http://localhost:8080',
             DATABASE_URL: 'file:./mainnet.db',
             DICE_MAX_MULTIPLIER: '100',
             DICE_RANDOM_BIT_LENGTH: '16',

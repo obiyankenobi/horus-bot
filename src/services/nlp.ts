@@ -2,6 +2,7 @@
 import { NlpManager } from 'node-nlp';
 import { Command } from '../nlp/types';
 import path from 'path';
+import { config } from '../config';
 import { logger } from '../utils/logger';
 
 class NLPService {
@@ -24,8 +25,13 @@ class NLPService {
         // Match "HTR" or "Hathor" explicitly
         this.manager.addNamedEntityText('currency', 'HTR', ['en'], ['HTR', 'Hathor']);
 
-        // Regex for Hathor Address (Base58, lengths vary 32-35 chars, starts with W/w)
-        this.manager.addRegexEntity('hathor_address', ['en'], /\b[Ww][a-zA-Z0-9]{31,34}\b/);
+        // Regex for Hathor Address (Base58, lengths vary 32-35 chars)
+        // Mainnet starts with H/h, Testnet starts with W/w
+        const addressRegex = config.network === 'mainnet'
+            ? /\b[Hh][a-zA-Z0-9]{31,34}\b/
+            : /\b[Ww][a-zA-Z0-9]{31,34}\b/;
+
+        this.manager.addRegexEntity('hathor_address', ['en'], addressRegex);
     }
 
     registerCommand(command: Command) {
