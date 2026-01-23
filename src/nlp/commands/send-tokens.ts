@@ -151,6 +151,7 @@ export const sendTokensCommand: Command = {
         if (txResult.success) {
             await ctx.reply(`Transaction successful 🚀\n\nHash: [${txResult.hash}](${explorerUrl})`, { parse_mode: "Markdown" });
         } else {
+            logger.error(`[SendTokens] Transaction failed: ${txResult.error || JSON.stringify(txResult)}`);
             await ctx.reply(`Transaction failed 🚫\nError: ${txResult.error || 'Unknown error'}`);
         }
     }

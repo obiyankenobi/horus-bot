@@ -9,6 +9,7 @@ module.exports = {
         env: {
             NODE_ENV: 'development',
             ENV_NETWORK: 'testnet',
+            FULLNODE_URL: 'http://localhost:8080',
         },
         env_production: {
             NODE_ENV: 'production',
